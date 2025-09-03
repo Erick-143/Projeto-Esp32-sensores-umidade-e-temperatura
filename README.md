@@ -8,16 +8,22 @@ Bem-vindo(a)! Este guia foi feito para te ajudar a começar com **Git** e **GitH
 ## 📥 1. Instalando o Git  
 
 👉 **Windows / Linux / macOS**  
-1. Acesse o site oficial: [https://git-scm.com/downloads](https://git-scm.com/downloads)  
-2. Baixe o instalador para o seu sistema operacional.  
-3. Durante a instalação, pode deixar as opções padrão.  
-4. Após instalar, abra o terminal (ou Git Bash no Windows) e digite:  
+1. Acesse o site oficial
+ ```bash
+ [https://git-scm.com/downloads](https://git-scm.com/downloads)
+```
+4. Baixe o instalador para o seu sistema operacional.  
+5. Durante a instalação, pode deixar as opções padrão.  
+6. Após instalar, abra o terminal (ou Git Bash no Windows) e digite:  
    ```bash
    git --version
    Se aparecer a versão, deu tudo certo ✅
 ## 🖥️ 2. Criando uma conta no GitHub
 
-Entre em https://github.com
+Entre em 
+```bash
+https://github.com
+```
 
 Clique em Sign up e crie sua conta gratuita.
 
