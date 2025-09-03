@@ -1,9 +1,7 @@
 # Projeto-Esp32-sensores-umidade-e-temperatura
-# 🚀 Guia Completo: Git e GitHub para Iniciantes  
+# 🚀 Git e GitHub para Iniciantes + Visual Studio Code
 
-Bem-vindo(a)! Este guia foi feito para te ajudar a começar com **Git** e **GitHub**, de forma simples e prática.  
-
----
+---------------------------------------------------------------------------------
 
 ## 📥 1. Instalando o Git  
 
