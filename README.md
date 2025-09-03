@@ -160,7 +160,7 @@ vá no link abaixo e baixe o CPX210x Windows Drivers
 ```bash
 https://www.silabs.com/software-and-tools/usb-to-uart-bridge-vcp-drivers?tab=downloads
 ```
-Extraia a pasta e baixe os app de acordo com o seu sistema operacional
+Extraia a pasta e baixe o app de acordo com o seu sistema operacional
 ```bash
 CP210x_VCP_Installer_x64
 CP210x_VCP_Installer_x86
