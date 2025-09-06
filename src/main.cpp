@@ -6,6 +6,7 @@
 #define DHTTYPE DHT11  // Tipo do sensor: DHT11 ou DHT22
 
 DHT dht(DHTPIN, DHTTYPE);
+//teste
 
 void setup() {
   Serial.begin(115200);
