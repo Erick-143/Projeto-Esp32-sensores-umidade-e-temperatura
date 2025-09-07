@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Página ESP32 com Tailwind</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen">
+  <h1 class="text-4xl font-bold mb-4">Olá, ESP32! 🚀</h1>
+  
+  <div class="space-x-4">
+    <button onclick="ligar()" class="px-4 py-2 bg-green-500 rounded-lg hover:bg-green-600">Ligar LED</button>
+    <button onclick="desligar()" class="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600">Desligar LED</button>
+  </div>
+
+  <script>
+    function ligar() {
+      fetch("/ligar");
+    }
+    function desligar() {
+      fetch("/desligar");
+    }
+  </script>
+</body>
+</html>
