@@ -167,8 +167,7 @@ Projeto que lê **temperatura** e **umidade** com um sensor DHT no **ESP32**, cr
 
 ### 1) Clonar
 
-    git clone https://github.com/<usuario>/<repo>.git
-    cd <repo>
+    git clone [https://github.com/<usuario>/<repo>.git](https://github.com/Erick-143/Projeto-Esp32-sensores-umidade-e-temperatura.git)
 
 ### 2) Abrir no VS Code (PlatformIO instalado)
 
@@ -191,19 +190,6 @@ Projeto que lê **temperatura** e **umidade** com um sensor DHT no **ESP32**, cr
 
 > **Importante:** sempre que mudar algo em `data/`, rode `uploadfs` novamente.
 
-### 5) Monitorar e Acessar
-
-- **Monitor Serial** (115200) para ver o IP:
-
-        pio device monitor -b 115200
-
-- Conecte ao Wi-Fi: **SSID** `ESP32_REDE` / **senha** `12345678`  
-- No navegador: `http://<IP_DO_ESP>`  
-- Endpoint JSON: `http://<IP_DO_ESP>/api/readings`
-
-**Exemplo de resposta:**
-
-    {"temperature": 27.3, "humidity": 61.2}
 
 ## 🔧 Configurações Rápidas
 
