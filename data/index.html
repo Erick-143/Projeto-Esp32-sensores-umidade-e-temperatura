@@ -1,26 +1,48 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Página ESP32 com Tailwind</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Página ESP32</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen">
-  <h1 class="text-4xl font-bold mb-4">Olá, ESP32! 🚀</h1>
-  
-  <div class="space-x-4">
-    <button onclick="ligar()" class="px-4 py-2 bg-green-500 rounded-lg hover:bg-green-600">Ligar LED</button>
-    <button onclick="desligar()" class="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600">Desligar LED</button>
-  </div>
+<body>
+  <header>
+    <h1 class="titulo">Projeto ESP32 - Temperatura e Umidade</h1>
+  </header>
+
+  <main>
+    <h2 >Projeto proposto pelo professor Paulo. ESP32 com o sensor DHT22 mostrando em tempo real temperatura e umidade.</h2>
+    <h3>Ver temperatura e umidade em tempo real</h3>
+
+    <div id="dados">
+      <p>Temperatura: <span id="temperatura">--</span> °C</p>
+      <p>Umidade: <span id="umidade">--</span> %</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>Universidade Estadual do Maranhão</p>
+    <p>Curso de Engenharia de Computação</p>
+  </footer>
 
   <script>
-    function ligar() {
-      fetch("/ligar");
+    async function leituraAtual() {
+      try {
+        const r = await fetch('/api/leitura', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const { temperatura, umidade } = await r.json();
+
+        document.getElementById('temperatura').textContent =
+          (typeof temperatura === 'number') ? temperatura.toFixed(1) : '--';
+        document.getElementById('umidade').textContent =
+          (typeof umidade === 'number') ? umidade.toFixed(1) : '--';
+      } catch (e) {
+        console.log(e);
+      }
     }
-    function desligar() {
-      fetch("/desligar");
-    }
+    leituraAtual();
+    setInterval(leituraAtual, 2000);
   </script>
 </body>
 </html>

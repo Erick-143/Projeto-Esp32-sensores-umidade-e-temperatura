@@ -1,9 +1,8 @@
 #pragma once
 #include <WebServer.h>
 
-// Declarações externas para o objeto server e as funções das rotas
+// Criada em main.cpp
 extern WebServer server;
-void handleRoot();
-void ligarLED();
-void desligarLED();
+
+// Registra todas as rotas e inicia o servidor
 void configurarRotas();

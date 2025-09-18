@@ -1,0 +1,32 @@
+:root {
+  --bg-color: #0f172a;     /* slate-900 */
+  --text-color: #e2e8f0;   /* slate-200 */
+}
+
+* {
+  margin: 0; padding: 0; box-sizing: border-box;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+            Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.titulo { color: white; }
+
+header, footer {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  padding: 1rem;
+  text-align: center;
+}
+
+main { padding: 1.25rem 1rem 5rem; max-width: 720px; margin: 0 auto; }
+h1 { font-size: 1.5rem; }
+h2 { margin: 1rem 0 .25rem; font-size: 1rem; font-weight: 500; color: #334155; }
+h3 { margin: .75rem 0; font-size: 1rem; color: #0f172a; }
+
+#dados{ margin-top: .5rem; font-size: 1.1rem; }
+#dados p { margin: .25rem 0; }
+
+footer {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+}
