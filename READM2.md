@@ -11,16 +11,16 @@ Projeto que lê **temperatura** e **umidade** com um sensor DHT no **ESP32**, cr
 - **Build/Upload:** PlatformIO
 - **Controle de versão:** Git & GitHub
 - **Sistema de arquivos:** SPIFFS
-- **Servidor HTTP:** `WebServer` (Arduino)
-- **Front-end:** HTML + CSS + JavaScript (fetch)
+- **Servidor HTTP:** `WebServer` 
+- **Front-end:** HTML + CSS + JavaScript 
 - **Formato de dados:** JSON
-- **Drivers USB:** CP210x ou CH340 (dependendo da sua placa)
+- **Drivers USB:** CP210x - Baseada na placa usada
 
 ---
 
 ## 🔌 Hardware
 
-- **ESP32 ***
+- ***ESP32 ***
 - **DHT22** (ou **DHT11**)
 - **Resistor** de **10 kΩ** (pull-up no pino DATA)
 - **Jumpers** e **protoboard**
@@ -65,109 +65,151 @@ Projeto que lê **temperatura** e **umidade** com um sensor DHT no **ESP32**, cr
 ## 🧩 Trechos-chave do Código
 
 **`main.cpp` (resumo):**
+```
+   #include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>//criar serivdor wev
+#include <SPIFFS.h>//pegar o html
+#include "routs/routs.h"
 
-    #include <Arduino.h>
-    #include <WiFi.h>
-    #include <WebServer.h>
-    #include <SPIFFS.h>
-    #include "routs/routs.h"
+#define AP_SSID  "ESP32_REDE"
+#define AP_SENHA "12345678"
 
-    #define AP_SSID  "ESP32_REDE"
-    #define AP_SENHA "12345678"
+WebServer server(80);  
+// cria um abjeto que representa o servidor
 
-    WebServer server(80);
+void setup() {
+  Serial.begin(115200);  
+  if (!SPIFFS.begin(true)) {
+    Serial.println("Erro ao montar SPIFFS");
+    return;
+  }
 
-    void setup() {
-      Serial.begin(115200);
-      if (!SPIFFS.begin(true)) { Serial.println("Erro ao montar SPIFFS"); return; }
+  if (WiFi.softAP(AP_SSID, AP_SENHA)) {
+    Serial.println("Rede criada!");
+    Serial.print("IP do ESP32: ");
+    Serial.println(WiFi.softAPIP());// o serial.printa o ip do esp32
+  } else {
+    Serial.println("Erro ao criar a rede");
+    return;
+  }
 
-      if (WiFi.softAP(AP_SSID, AP_SENHA)) {
-        Serial.println("Rede criada!");
-        Serial.print("IP do ESP32: ");
-        Serial.println(WiFi.softAPIP());
-      }
+  configurarRotas();  // Registra rotas e inicia o servidor
+}
 
-      configurarRotas();   // registra rotas e server.begin()
-    }
-
-    void loop() {
-      server.handleClient();
-    }
+void loop() {
+  server.handleClient();
+}
+```
 
 **`routs.cpp` (API/páginas e DHT):**
+```
+ #include <Arduino.h>
+#include <SPIFFS.h>
+#include <WebServer.h>
+#include <DHT.h>
+#include "routs.h"
 
-    #include <Arduino.h>
-    #include <SPIFFS.h>
-    #include <WebServer.h>
-    #include <DHT.h>
-    #include "routs.h"
+// === Ajuste aqui o seu sensor ===
+#define DHTPIN   4
+#define DHTTYPE  DHT22    
 
-    #define DHTPIN  4
-    #define DHTTYPE DHT22     // troque para DHT11 se necessário
-    static DHT dht(DHTPIN, DHTTYPE);
+DHT dht(DHTPIN, DHTTYPE);  // objeto global do sensor
 
-    extern WebServer server;
+// Envia arquivo do SPIFFS
+static void enviarArquivo(const char* nome_arquivo, const char* tipo_de_arquivo) {
+  File f = SPIFFS.open(nome_arquivo, "r");
+  if (!f) {
+    server.send(404, "text/plain", "Arquivo nao encontrado");
+    return;
+  }
+  server.streamFile(f, tipo_de_arquivo);
+  f.close();
+}
 
-    static void enviarArquivo(const char* nome, const char* tipo) {
-      File f = SPIFFS.open(nome, "r");
-      if (!f) { server.send(404, "text/plain", "Arquivo nao encontrado"); return; }
-      server.streamFile(f, tipo);
-      f.close();
-    }
+void enviarPaginaPrincipal() {
+  enviarArquivo("/index.html", "text/html");
+}
 
-    static void enviarLeituras() {
-      float t = dht.readTemperature();
-      float h = dht.readHumidity();
+void enviarEstilo() {
+  enviarArquivo("/style.css", "text/css");
+}
 
-      if (isnan(t) || isnan(h)) {
-        server.sendHeader("Cache-Control","no-store");
-        server.send(500, "application/json", "{\"error\":\"sensor\"}");
-        return;
-      }
+void enviarLeituras() {
+  float temperatura = dht.readTemperature();  // °C
+  float umidade     = dht.readHumidity();     // %
 
-      char buf[96];
-      snprintf(buf, sizeof(buf), "{\"temperature\":%.1f,\"humidity\":%.1f}", t, h);
-      server.sendHeader("Cache-Control","no-store");
-      server.send(200, "application/json", buf);
-    }
+  if (isnan(temperatura) || isnan(umidade)) {
+    // pode remover o sendHeader se quiser simplificar
+    Serial.println("[DHT] leitura invalida (NaN)");
+    server.sendHeader("Cache-Control", "no-store");
+    server.send(500, "application/json", "{\"error\":\"sensor\"}");
+    return;
+  }
 
-    void configurarRotas() {
-      dht.begin();
-      delay(1500);  // estabilização inicial
-      server.on("/",          HTTP_GET, []{ enviarArquivo("/index.html","text/html"); });
-      server.on("/style.css", HTTP_GET, []{ enviarArquivo("/style.css","text/css"); });
-      server.on("/api/readings", HTTP_GET, enviarLeituras);
-      server.begin();
-    }
+  
+  Serial.printf("[DHT] T=%.1f °C  H=%.1f %%\n", temperatura, umidade);
+
+  char buf[96]; // buffer temporário p/ montar o JSON
+  snprintf(buf, sizeof(buf),
+           "{\"temperatura\":%.1f,\"umidade\":%.1f}",
+           temperatura, umidade);
+
+             Serial.printf("JSON -> %s\n", buf);
+
+  server.sendHeader("Cache-Control", "no-store"); // evita cache
+  server.send(200, "application/json", buf);
+}
+
+void rotaNaoEncontrada() {
+  server.send(404, "text/plain", "Rota nao encontrada");
+}
+
+void configurarRotas() {
+  // Inicia o DHT aqui
+  dht.begin();
+  delay(1500); // pequena pausa para o sensor iniciar
+
+  server.on("/",           HTTP_GET, enviarPaginaPrincipal);
+  server.on("/style.css",  HTTP_GET, enviarEstilo);
+  server.on("/api/leitura", HTTP_GET, enviarLeituras); 
+  server.onNotFound(rotaNaoEncontrada);
+
+  server.begin();
+  Serial.println("Servidor web iniciado!");
+  Serial.print("DHT: ");
+  Serial.println(DHTTYPE == DHT22 ? "DHT22" : "DHT11");
+}
+```
 
 **`index.html` (script do front-end):**
-
-    <script>
-    async function refreshReadings() {
+```
+   <script>
+    async function leituraAtual() {
       try {
-        const r = await fetch('/api/readings', { cache: 'no-store' });
+        const r = await fetch('/api/leitura', { cache: 'no-store' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = await r.json();
-        const temperature = Number(data.temperature);
-        const humidity    = Number(data.humidity);
+        const { temperatura, umidade } = await r.json();
 
         document.getElementById('temperatura').textContent =
-          Number.isFinite(temperature) ? temperature.toFixed(1) : '--';
+          (typeof temperatura === 'number') ? temperatura.toFixed(1) : '--';
         document.getElementById('umidade').textContent =
-          Number.isFinite(humidity) ? humidity.toFixed(1) : '--';
-      } catch (e) { console.log(e); }
+          (typeof umidade === 'number') ? umidade.toFixed(1) : '--';
+      } catch (e) {
+        console.log(e);
+      }
     }
-    refreshReadings();
-    setInterval(refreshReadings, 2000);
-    </script>
-
+    leituraAtual();
+    setInterval(leituraAtual, 2000);
+  </script>
+```
 ---
 
 ## 🖥️ Como Rodar
 
 ### 1) Clonar
 
-    git clone [https://github.com/<usuario>/<repo>.git](https://github.com/Erick-143/Projeto-Esp32-sensores-umidade-e-temperatura.git)
+    git clone https://github.com/<usuario>/<repo>.git](https://github.com/Erick-143/Projeto-Esp32-sensores-umidade-e-temperatura.git)
 
 ### 2) Abrir no VS Code (PlatformIO instalado)
 
