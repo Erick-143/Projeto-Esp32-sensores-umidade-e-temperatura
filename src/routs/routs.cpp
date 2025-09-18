@@ -11,7 +11,7 @@
 DHT dht(DHTPIN, DHTTYPE);  // objeto global do sensor
 
 // Envia arquivo do SPIFFS
-static void enviarArquivo(const char* nome_arquivo, const char* tipo_de_arquivo) {
+void enviarArquivo(const char* nome_arquivo, const char* tipo_de_arquivo) {
   File f = SPIFFS.open(nome_arquivo, "r");
   if (!f) {
     server.send(404, "text/plain", "Arquivo nao encontrado");
@@ -21,11 +21,11 @@ static void enviarArquivo(const char* nome_arquivo, const char* tipo_de_arquivo)
   f.close();
 }
 
-static void enviarPaginaPrincipal() {
+void enviarPaginaPrincipal() {
   enviarArquivo("/index.html", "text/html");
 }
 
-static void enviarEstilo() {
+void enviarEstilo() {
   enviarArquivo("/style.css", "text/css");
 }
 
@@ -56,7 +56,7 @@ void enviarLeituras() {
   server.send(200, "application/json", buf);
 }
 
-static void rotaNaoEncontrada() {
+void rotaNaoEncontrada() {
   server.send(404, "text/plain", "Rota nao encontrada");
 }
 
