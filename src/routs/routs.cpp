@@ -49,7 +49,8 @@ void enviarLeituras() {
   snprintf(buf, sizeof(buf),
            "{\"temperatura\":%.1f,\"umidade\":%.1f}",
            temperatura, umidade);
-
+//snprintf significa string print format, ou seja,
+// formata a string e armazena no buffer
              Serial.printf("JSON -> %s\n", buf);
 
   server.sendHeader("Cache-Control", "no-store"); // evita cache
@@ -74,4 +75,6 @@ void configurarRotas() {
   Serial.println("Servidor web iniciado!");
   Serial.print("DHT: ");
   Serial.println(DHTTYPE == DHT22 ? "DHT22" : "DHT11");
+
 }
+

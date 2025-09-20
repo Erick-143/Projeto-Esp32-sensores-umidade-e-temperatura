@@ -4,7 +4,7 @@
 #include <SPIFFS.h>//pegar o html
 #include "routs/routs.h"
 
-#define AP_SSID  "ESP32_REDE"
+#define AP_SSID  "ESP32_GRUPO2"
 #define AP_SENHA "12345678"
 
 WebServer server(80);  
