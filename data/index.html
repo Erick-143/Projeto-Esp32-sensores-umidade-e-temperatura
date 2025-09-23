@@ -19,8 +19,8 @@
     <h3>Ver temperatura e umidade em tempo real</h3>
 
     <div id="dados">
-      <p>Temperatura: <span id="temperatura">--</span> °C</p>
-      <p>Umidade: <span id="umidade">--</span> %</p>
+      <p>Temperatura(vermelho): <span id="temperatura">--</span> °C</p>
+      <p>Umidade(azul): <span id="umidade">--</span> %</p>
     </div>
     <canvas id="grafico-tempo-real" width="940" height="360"
       style="width:100%;max-width:960px;border:1px solid #e5e5e5;background:#fff;border-radius:12px;margin-top:8px"></canvas>
@@ -56,27 +56,27 @@
   </script>
 
 <script>
-  // ===== Gráfico em JS puro (sem bibliotecas) =====
-  // Configurações do gráfico
-  const graf_MAX_PONTOS = 60;                          // histórico (≈2 min se ler a cada 2s)
+  // ===== Gráfico comparativo 0..100 (min/max COMUNS) =====
+  // Configurações
+  const graf_MAX_PONTOS = 120;                         // ~2 min se ler a cada 1 s
   const graf_MARGENS    = { esquerda:45, direita:15, topo:15, base:25 };
 
-  // Séries de dados em memória
-  const graf_temperaturas = [];                        // números (°C)
-  const graf_umidades     = [];                        // números (%)
+  // Histórico
+  const graf_temperaturas = [];
+  const graf_umidades     = [];
 
-    // Alvos de desenho
-    const graf_canvas = document.getElementById('grafico-tempo-real');
-    const graf_ctx = graf_canvas.getContext('2d');
+  // Canvas
+  const graf_canvas = document.getElementById('grafico-tempo-real');
+  const graf_ctx    = graf_canvas.getContext('2d');
 
-  // --- Conversão índice → X (mantemos igual) ---
+  // índice → X
   function graf_indiceParaX(indice, total, largura) {
     if (total <= 1) return graf_MARGENS.esquerda;
     const areaLargura = largura - graf_MARGENS.esquerda - graf_MARGENS.direita;
     return graf_MARGENS.esquerda + areaLargura * (indice / (total - 1));
   }
 
-  // --- Desenho do gráfico (normalizado 0..100%) ---
+  // Desenho (escala comum 0..100)
   function graf_desenhar() {
     const W = graf_canvas.width, H = graf_canvas.height;
     graf_ctx.clearRect(0, 0, W, H);
@@ -84,11 +84,15 @@
     const n = Math.max(graf_temperaturas.length, graf_umidades.length);
     if (n === 0) return;
 
-    // Área útil vertical e helper para mapear fração [0..1] → Y em pixels
+    // Min e max COMUNS às duas séries (janela atual)
+    const todos = graf_temperaturas.concat(graf_umidades).filter(Number.isFinite);
+    let vmin = Math.min(...todos);
+    let vmax = Math.max(...todos);
+    if (vmax === vmin) vmax = vmin + 1; // evita divisão por zero
+
+    // Área útil e mapeamento fração [0..1] → Y
     const areaAltura = H - graf_MARGENS.topo - graf_MARGENS.base;
-    function yFromFrac(frac) { // frac=0 → base; frac=1 → topo
-      return graf_MARGENS.topo + areaAltura * (1 - frac);
-    }
+    const yFromFrac = (frac) => graf_MARGENS.topo + areaAltura * (1 - frac);
 
     // Eixos
     graf_ctx.strokeStyle = '#cccccc';
@@ -102,26 +106,23 @@
     graf_ctx.lineTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);
     graf_ctx.stroke();
 
-    // Grade + rótulos (0%, 20%, 40%, 60%, 80%, 100%)
+    // Grade + rótulos 0..100 (sem “%”)
     graf_ctx.font = '12px system-ui, Arial, sans-serif';
     graf_ctx.fillStyle = '#666';
     for (let j = 0; j <= 5; j++) {
-      const frac = j / 5;                 // 0..1
+      const frac = j / 5;                 // 0, 0.2, 0.4, 0.6, 0.8, 1
       const y    = yFromFrac(frac);
       graf_ctx.strokeStyle = '#efefef';
       graf_ctx.beginPath();
       graf_ctx.moveTo(graf_MARGENS.esquerda, y);
       graf_ctx.lineTo(W - graf_MARGENS.direita, y);
       graf_ctx.stroke();
-      graf_ctx.fillText(String((frac * 100).toFixed(0)) + '%', 4, y + 4);
+      graf_ctx.fillText(String((frac * 100).toFixed(0)), 4, y + 4); // sem símbolo
     }
 
-    // Desenha uma série normalizando para 0..1 (depois vira 0..100% na escala comum)
-    function desenharSerieNormalizada(arr, cor) {
+    // Desenha série mapeando valor real → [0..1] com base no vmin/vmax COMUNS
+    function desenharSerieEscalaComum(arr, cor) {
       if (arr.length === 0) return;
-      let smin = Math.min(...arr);
-      let smax = Math.max(...arr);
-      if (smax === smin) smax = smin + 1; // evita divisão por zero
 
       graf_ctx.strokeStyle = cor;
       graf_ctx.lineWidth   = 2;
@@ -131,7 +132,7 @@
 
       arr.forEach((valor, i) => {
         const x = graf_indiceParaX(i, arr.length, W);
-        const frac = (valor - smin) / (smax - smin); // 0..1 da própria série
+        const frac = (valor - vmin) / (vmax - vmin);     // 0..1 na escala COMUM
         const y = yFromFrac(frac);
         if (i === 0) graf_ctx.moveTo(x, y); else graf_ctx.lineTo(x, y);
       });
@@ -139,12 +140,12 @@
       graf_ctx.stroke();
     }
 
-    // Agora ambas ficam na mesma escala vertical (0..100%)
-    desenharSerieNormalizada(graf_temperaturas, '#e53935'); // vermelho
-    desenharSerieNormalizada(graf_umidades,     '#1e88e5'); // azul
+    // Ambas na mesma escala 0..100 (sem “%”)
+    desenharSerieEscalaComum(graf_temperaturas, '#e53935'); // vermelho
+    desenharSerieEscalaComum(graf_umidades,     '#1e88e5'); // azul
   }
 
-  // --- Captura números dos <span> e atualiza as séries ---
+  // Lê dos <span> e atualiza histórico
   function graf_capturarDosSpans() {
     const elT = document.getElementById('temperatura');
     const elU = document.getElementById('umidade');
@@ -159,66 +160,17 @@
     if (graf_temperaturas.length > graf_MAX_PONTOS) graf_temperaturas.shift();
     if (graf_umidades.length     > graf_MAX_PONTOS) graf_umidades.shift();
 
-      // Grade e rótulos Y
-      graf_ctx.font = '12px system-ui, Arial, sans-serif';
-      graf_ctx.fillStyle = '#666';
-      for (let j = 0; j <= 5; j++) {
-        const frac = j / 5;
-        const yVal = vmin + (vmax - vmin) * (1 - frac);
-        const y = graf_valorParaY(yVal, vmin, vmax, H);
-        graf_ctx.strokeStyle = '#efefef';
-        graf_ctx.beginPath();
-        graf_ctx.moveTo(graf_MARGENS.esquerda, y);
-        graf_ctx.lineTo(W - graf_MARGENS.direita, y);
-        graf_ctx.stroke();
-        graf_ctx.fillText(yVal.toFixed(0), 4, y + 4);
-      }
+    graf_desenhar();
+  }
 
-      // Função para desenhar uma série (temperatura/umidade)
-      function desenharSerie(arr, cor) {
-        if (arr.length === 0) return;
-        graf_ctx.strokeStyle = cor;
-        graf_ctx.lineWidth = 2;
-        graf_ctx.beginPath();
-        arr.forEach((valor, i) => {
-          const x = graf_indiceParaX(i, arr.length, W);
-          const y = graf_valorParaY(valor, vmin, vmax, H);
-          if (i === 0) graf_ctx.moveTo(x, y); else graf_ctx.lineTo(x, y);
-        });
-        graf_ctx.stroke();
-      }
+  // Mesma cadência do seu leituraAtual (1 s)
+  graf_capturarDosSpans();
+  setInterval(graf_capturarDosSpans, 1000);
 
-      desenharSerie(graf_temperaturas, '#e53935'); // vermelho
-      desenharSerie(graf_umidades, '#1e88e5'); // azul
-    }
+  // Redesenha no resize
+  addEventListener('resize', graf_desenhar);
+</script>
 
-    // --- Captura os números dos <span> e atualiza as séries ---
-    function graf_capturarDosSpans() {
-      const elT = document.getElementById('temperatura');
-      const elU = document.getElementById('umidade');
-      if (!elT || !elU) return;
-
-      // Pega o texto, troca vírgula por ponto e converte para número
-      const T = parseFloat(String(elT.textContent).replace(',', '.'));
-      const U = parseFloat(String(elU.textContent).replace(',', '.'));
-      if (!Number.isFinite(T) || !Number.isFinite(U)) return; // ignora enquanto for "--"
-
-      // Empilha e respeita o limite de pontos (janela deslizante)
-      graf_temperaturas.push(T);
-      graf_umidades.push(U);
-      if (graf_temperaturas.length > graf_MAX_PONTOS) graf_temperaturas.shift();
-      if (graf_umidades.length > graf_MAX_PONTOS) graf_umidades.shift();
-
-      graf_desenhar();
-    }
-
-    // Sincroniza com seu setInterval(leituraAtual, 2000)
-    graf_capturarDosSpans();               // tenta desenhar uma vez no início
-    setInterval(graf_capturarDosSpans, 2000);
-
-    // Redesenha se o canvas mudar de tamanho visual (ex.: orientação/resize)
-    addEventListener('resize', graf_desenhar);
-  </script>
 
 </body>
 
