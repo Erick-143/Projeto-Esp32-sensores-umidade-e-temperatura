@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Página ESP32</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <header>
     <h1 class="titulo">Projeto ESP32 - Temperatura e Umidade</h1>
   </header>
 
   <main>
-    <h2 >Projeto proposto pelo professor Paulo. ESP32 com o sensor DHT22 mostrando em tempo real temperatura e umidade.</h2>
+    <h2>Projeto proposto pelo professor Paulo. ESP32 com o sensor DHT22 mostrando em tempo real temperatura e umidade.
+    </h2>
     <h3>Ver temperatura e umidade em tempo real</h3>
 
     <div id="dados">
@@ -20,14 +23,17 @@
       <p>Umidade: <span id="umidade">--</span> %</p>
     </div>
     <canvas id="grafico-tempo-real" width="940" height="360"
-        style="width:100%;max-width:960px;border:1px solid #e5e5e5;background:#fff;border-radius:12px;margin-top:8px"></canvas>
+      style="width:100%;max-width:960px;border:1px solid #e5e5e5;background:#fff;border-radius:12px;margin-top:8px"></canvas>
 
-    
+
   </main>
 
   <footer>
-    <p>Universidade Estadual do Maranhão</p>
-    <p>Curso de Engenharia de Computação</p>
+    <img src="assets/LogoUema.png" alt="LOGO UEMA" class="imagem">
+    <p class = "rodape">
+      Universidade Estadual do Maranhão<br>
+      Curso de Engenharia de Computação
+    </p>
   </footer>
 
   <script>
@@ -49,123 +55,124 @@
     setInterval(leituraAtual, 1000);
   </script>
 
-<script>
-  // ===== Gráfico em JS puro (sem bibliotecas) =====
-  // Configurações do gráfico
-  const graf_MAX_PONTOS = 60;                          // quantos pontos manter (≈2 min a 2s)
-  const graf_MARGENS    = { esquerda:45, direita:15, topo:15, base:25 }; // margens do canvas
+  <script>
+    // ===== Gráfico em JS puro (sem bibliotecas) =====
+    // Configurações do gráfico
+    const graf_MAX_PONTOS = 60;                          // quantos pontos manter (≈2 min a 2s)
+    const graf_MARGENS = { esquerda: 45, direita: 15, topo: 15, base: 25 }; // margens do canvas
 
-  // Séries de dados em memória
-  const graf_temperaturas = [];                        // valores numéricos de temperatura
-  const graf_umidades     = [];                        // valores numéricos de umidade
+    // Séries de dados em memória
+    const graf_temperaturas = [];                        // valores numéricos de temperatura
+    const graf_umidades = [];                        // valores numéricos de umidade
 
-  // Alvos de desenho
-  const graf_canvas = document.getElementById('grafico-tempo-real');
-  const graf_ctx    = graf_canvas.getContext('2d');
+    // Alvos de desenho
+    const graf_canvas = document.getElementById('grafico-tempo-real');
+    const graf_ctx = graf_canvas.getContext('2d');
 
-  // --- Conversões dado → pixel ---
-  function graf_valorParaY(valor, min, max, altura) {
-    // Evita divisão por zero quando todos os pontos são iguais
-    if (max === min) max = min + 1;
-    // Dá uma folga (8%) nas bordas para a linha não “grudar” no topo/base
-    const folga = 0.08 * (max - min);
-    min -= folga; max += folga;
+    // --- Conversões dado → pixel ---
+    function graf_valorParaY(valor, min, max, altura) {
+      // Evita divisão por zero quando todos os pontos são iguais
+      if (max === min) max = min + 1;
+      // Dá uma folga (8%) nas bordas para a linha não “grudar” no topo/base
+      const folga = 0.08 * (max - min);
+      min -= folga; max += folga;
 
-    const areaAltura = altura - graf_MARGENS.topo - graf_MARGENS.base;
-    // y cresce para baixo no canvas; por isso 1 - fração
-    return graf_MARGENS.topo + areaAltura * (1 - (valor - min) / (max - min));
-  }
-
-  function graf_indiceParaX(indice, total, largura) {
-    if (total <= 1) return graf_MARGENS.esquerda;
-    const areaLargura = largura - graf_MARGENS.esquerda - graf_MARGENS.direita;
-    return graf_MARGENS.esquerda + areaLargura * (indice / (total - 1));
-  }
-
-  // --- Desenho do gráfico ---
-  function graf_desenhar() {
-    const W = graf_canvas.width, H = graf_canvas.height;
-    graf_ctx.clearRect(0, 0, W, H);
-
-    const n = Math.max(graf_temperaturas.length, graf_umidades.length);
-    if (n === 0) return;
-
-    // Limites dinâmicos considerando as duas séries
-    const todos = graf_temperaturas.concat(graf_umidades).filter(Number.isFinite);
-    const vmin = Math.min(...todos);
-    const vmax = Math.max(...todos);
-
-    // Eixos
-    graf_ctx.strokeStyle = '#cccccc';
-    graf_ctx.lineWidth   = 1;
-    graf_ctx.beginPath();
-    graf_ctx.moveTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);
-    graf_ctx.lineTo(W - graf_MARGENS.direita, H - graf_MARGENS.base); // eixo X
-    graf_ctx.moveTo(graf_MARGENS.esquerda, graf_MARGENS.topo);
-    graf_ctx.lineTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);     // eixo Y
-    graf_ctx.stroke();
-
-    // Grade e rótulos Y
-    graf_ctx.font = '12px system-ui, Arial, sans-serif';
-    graf_ctx.fillStyle = '#666';
-    for (let j = 0; j <= 5; j++) {
-      const frac = j / 5;
-      const yVal = vmin + (vmax - vmin) * (1 - frac);
-      const y    = graf_valorParaY(yVal, vmin, vmax, H);
-      graf_ctx.strokeStyle = '#efefef';
-      graf_ctx.beginPath();
-      graf_ctx.moveTo(graf_MARGENS.esquerda, y);
-      graf_ctx.lineTo(W - graf_MARGENS.direita, y);
-      graf_ctx.stroke();
-      graf_ctx.fillText(yVal.toFixed(0), 4, y + 4);
+      const areaAltura = altura - graf_MARGENS.topo - graf_MARGENS.base;
+      // y cresce para baixo no canvas; por isso 1 - fração
+      return graf_MARGENS.topo + areaAltura * (1 - (valor - min) / (max - min));
     }
 
-    // Função para desenhar uma série (temperatura/umidade)
-    function desenharSerie(arr, cor) {
-      if (arr.length === 0) return;
-      graf_ctx.strokeStyle = cor;
-      graf_ctx.lineWidth   = 2;
-      graf_ctx.beginPath();
-      arr.forEach((valor, i) => {
-        const x = graf_indiceParaX(i, arr.length, W);
-        const y = graf_valorParaY(valor, vmin, vmax, H);
-        if (i === 0) graf_ctx.moveTo(x, y); else graf_ctx.lineTo(x, y);
-      });
-      graf_ctx.stroke();
+    function graf_indiceParaX(indice, total, largura) {
+      if (total <= 1) return graf_MARGENS.esquerda;
+      const areaLargura = largura - graf_MARGENS.esquerda - graf_MARGENS.direita;
+      return graf_MARGENS.esquerda + areaLargura * (indice / (total - 1));
     }
 
-    desenharSerie(graf_temperaturas, '#e53935'); // vermelho
-    desenharSerie(graf_umidades,     '#1e88e5'); // azul
-  }
+    // --- Desenho do gráfico ---
+    function graf_desenhar() {
+      const W = graf_canvas.width, H = graf_canvas.height;
+      graf_ctx.clearRect(0, 0, W, H);
 
-  // --- Captura os números dos <span> e atualiza as séries ---
-  function graf_capturarDosSpans() {
-    const elT = document.getElementById('temperatura');
-    const elU = document.getElementById('umidade');
-    if (!elT || !elU) return;
+      const n = Math.max(graf_temperaturas.length, graf_umidades.length);
+      if (n === 0) return;
 
-    // Pega o texto, troca vírgula por ponto e converte para número
-    const T = parseFloat(String(elT.textContent).replace(',', '.'));
-    const U = parseFloat(String(elU.textContent).replace(',', '.'));
-    if (!Number.isFinite(T) || !Number.isFinite(U)) return; // ignora enquanto for "--"
+      // Limites dinâmicos considerando as duas séries
+      const todos = graf_temperaturas.concat(graf_umidades).filter(Number.isFinite);
+      const vmin = Math.min(...todos);
+      const vmax = Math.max(...todos);
 
-    // Empilha e respeita o limite de pontos (janela deslizante)
-    graf_temperaturas.push(T);
-    graf_umidades.push(U);
-    if (graf_temperaturas.length > graf_MAX_PONTOS) graf_temperaturas.shift();
-    if (graf_umidades.length     > graf_MAX_PONTOS) graf_umidades.shift();
+      // Eixos
+      graf_ctx.strokeStyle = '#cccccc';
+      graf_ctx.lineWidth = 1;
+      graf_ctx.beginPath();
+      graf_ctx.moveTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);
+      graf_ctx.lineTo(W - graf_MARGENS.direita, H - graf_MARGENS.base); // eixo X
+      graf_ctx.moveTo(graf_MARGENS.esquerda, graf_MARGENS.topo);
+      graf_ctx.lineTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);     // eixo Y
+      graf_ctx.stroke();
 
-    graf_desenhar();
-  }
+      // Grade e rótulos Y
+      graf_ctx.font = '12px system-ui, Arial, sans-serif';
+      graf_ctx.fillStyle = '#666';
+      for (let j = 0; j <= 5; j++) {
+        const frac = j / 5;
+        const yVal = vmin + (vmax - vmin) * (1 - frac);
+        const y = graf_valorParaY(yVal, vmin, vmax, H);
+        graf_ctx.strokeStyle = '#efefef';
+        graf_ctx.beginPath();
+        graf_ctx.moveTo(graf_MARGENS.esquerda, y);
+        graf_ctx.lineTo(W - graf_MARGENS.direita, y);
+        graf_ctx.stroke();
+        graf_ctx.fillText(yVal.toFixed(0), 4, y + 4);
+      }
 
-  // Sincroniza com seu setInterval(leituraAtual, 2000)
-  graf_capturarDosSpans();               // tenta desenhar uma vez no início
-  setInterval(graf_capturarDosSpans, 2000);
+      // Função para desenhar uma série (temperatura/umidade)
+      function desenharSerie(arr, cor) {
+        if (arr.length === 0) return;
+        graf_ctx.strokeStyle = cor;
+        graf_ctx.lineWidth = 2;
+        graf_ctx.beginPath();
+        arr.forEach((valor, i) => {
+          const x = graf_indiceParaX(i, arr.length, W);
+          const y = graf_valorParaY(valor, vmin, vmax, H);
+          if (i === 0) graf_ctx.moveTo(x, y); else graf_ctx.lineTo(x, y);
+        });
+        graf_ctx.stroke();
+      }
 
-  // Redesenha se o canvas mudar de tamanho visual (ex.: orientação/resize)
-  addEventListener('resize', graf_desenhar);
-</script>
+      desenharSerie(graf_temperaturas, '#e53935'); // vermelho
+      desenharSerie(graf_umidades, '#1e88e5'); // azul
+    }
 
-  
+    // --- Captura os números dos <span> e atualiza as séries ---
+    function graf_capturarDosSpans() {
+      const elT = document.getElementById('temperatura');
+      const elU = document.getElementById('umidade');
+      if (!elT || !elU) return;
+
+      // Pega o texto, troca vírgula por ponto e converte para número
+      const T = parseFloat(String(elT.textContent).replace(',', '.'));
+      const U = parseFloat(String(elU.textContent).replace(',', '.'));
+      if (!Number.isFinite(T) || !Number.isFinite(U)) return; // ignora enquanto for "--"
+
+      // Empilha e respeita o limite de pontos (janela deslizante)
+      graf_temperaturas.push(T);
+      graf_umidades.push(U);
+      if (graf_temperaturas.length > graf_MAX_PONTOS) graf_temperaturas.shift();
+      if (graf_umidades.length > graf_MAX_PONTOS) graf_umidades.shift();
+
+      graf_desenhar();
+    }
+
+    // Sincroniza com seu setInterval(leituraAtual, 2000)
+    graf_capturarDosSpans();               // tenta desenhar uma vez no início
+    setInterval(graf_capturarDosSpans, 2000);
+
+    // Redesenha se o canvas mudar de tamanho visual (ex.: orientação/resize)
+    addEventListener('resize', graf_desenhar);
+  </script>
+
+
 </body>
+
 </html>

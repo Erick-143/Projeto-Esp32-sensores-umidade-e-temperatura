@@ -1,5 +1,5 @@
 :root {
-  --bg-color: #0f172a;     /* slate-900 */
+  --bg-color: #1C6EA4;     /* slate-900 */ 
   --text-color: #e2e8f0;   /* slate-200 */
 }
 
@@ -16,6 +16,25 @@ header, footer {
   color: var(--text-color);
   padding: 1rem;
   text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.imagem {
+  max-width: 100%;
+  height: 5rem;
+  margin: 0;
+  display: flex;
+  filter: brightness(0) invert(1);
+}
+
+.rodape{
+  font-size: 1rem;
+  color: var(--text-color); 
+  font-size: 1.25rem;
 }
 
 main { padding: 1.25rem 1rem 5rem; max-width: 720px; margin: 0 auto; }
