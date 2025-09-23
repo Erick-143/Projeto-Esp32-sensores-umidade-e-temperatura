@@ -34,7 +34,7 @@ header, footer {
 .rodape{
   font-size: 1rem;
   color: var(--text-color); 
-  font-size: 1.25rem;
+  font-size: 1.15rem;
 }
 
 main { padding: 1.25rem 1rem 5rem; max-width: 720px; margin: 0 auto; }
