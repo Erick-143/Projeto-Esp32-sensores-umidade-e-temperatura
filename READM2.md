@@ -39,113 +39,111 @@ Projeto que lê **temperatura** e **umidade** com um sensor DHT no **ESP32**, cr
 ---
 
 ## 🗂️ Estrutura do Projeto
-<img width="682" height="570" alt="image" src="https://github.com/user-attachments/assets/d329539a-7167-447b-b51d-8a866d7b5a8c" />
+<img width="343" height="432" alt="image" src="https://github.com/user-attachments/assets/bbe46d3b-b62b-40ac-919b-5fa7faf6a57f" />
+
 
 
 ---
+## 🌐 Como funciona (visão rápida)
+## 1.
+O ESP32 sobe uma rede AP (ex.: ESP32_REDE) e inicia um web server.
+
+## 2.
+A página index.html + style.css vêm do SPIFFS.
+
+## 3.
+O front-end chama GET /api/leitura a cada 1 s.
+
+## 4.
+O back-end lê o DHT e responde { "temperatura": x, "umidade": y }.
+
+## 5.
+A página atualiza os <span> e plota um gráfico 0..100 (escala comum a T e U):
+
+° Vermelho = Temperatura
+
+° Azul = Umidade
 
 ## ⚙️ Configuração (PlatformIO)
 
 `platformio.ini`:
+```
+[env:esp32c3-supermini]
+platform = espressif32
+board = esp32-c3-devkitm-1
+framework = arduino
+monitor_speed = 115200
+upload_speed = 460800
+board_build.filesystem = spiffs
 
-    [env:esp32doit-devkit-v1]
-    platform = espressif32
-    board = esp32doit-devkit-v1
-    framework = arduino
-    monitor_speed = 115200
-    board_build.filesystem = spiffs
+build_flags = 
+  -DARDUINO_USB_CDC_ON_BOOT=1 
+  -DARDUINO_USB_MODE=1
 
-    lib_deps =
-      adafruit/DHT sensor library @ ^1.4.4
-      adafruit/Adafruit Unified Sensor @ ^1.1.14
+lib_deps =
+  adafruit/DHT sensor library @ ^1.4.4
+  adafruit/Adafruit Unified Sensor @ ^1.1.14
 
 > **Drivers USB:** instale CP210x.
----
-
+```
 ## 🧩 Trechos-chave do Código
 
-**`main.cpp` (resumo):**
+**`routs.cpp` (resumo):**
 ```
-   #include <Arduino.h>
-#include <WiFi.h>
-#include <WebServer.h>//criar serivdor wev
-#include <SPIFFS.h>//pegar o html
-#include "routs/routs.h"
-
-#define AP_SSID  "ESP32_REDE"
-#define AP_SENHA "12345678"
-
-WebServer server(80);  
-// cria um abjeto que representa o servidor
-
-void setup() {
-  Serial.begin(115200);  
-  if (!SPIFFS.begin(true)) {
-    Serial.println("Erro ao montar SPIFFS");
-    return;
-  }
-
-  if (WiFi.softAP(AP_SSID, AP_SENHA)) {
-    Serial.println("Rede criada!");
-    Serial.print("IP do ESP32: ");
-    Serial.println(WiFi.softAPIP());// o serial.printa o ip do esp32
-  } else {
-    Serial.println("Erro ao criar a rede");
-    return;
-  }
-
-  configurarRotas();  // Registra rotas e inicia o servidor
+static void routeStatic(const char* url, const char* fsPath, const char* contentType) {
+  server.on(url, HTTP_GET, [fsPath, contentType]() {
+    File f = SPIFFS.open(fsPath, "r");
+    if (!f) { server.send(404, "text/plain", "Not found"); return; }
+    server.streamFile(f, contentType);
+    f.close();
+  });
 }
 
-void loop() {
-  server.handleClient();
-}
+```
+Uso típico:
+```
+routeStatic("/",                   "/index.html",   "text/html");
+routeStatic("/style.css",          "/style.css",    "text/css");
+routeStatic("/assets/LogoUema.png","/LogoUema.png", "image/png"); // arquivo físico é /LogoUema.png
+server.on("/api/leitura", HTTP_GET, enviarLeituras);
 ```
 
-**`routs.cpp` (API/páginas e DHT):**
+**`API` (/api/leitura)(JSON):**
 ```
- #include <Arduino.h>
-#include <SPIFFS.h>
-#include <WebServer.h>
-#include <DHT.h>
-#include "routs.h"
-
-// === Ajuste aqui o seu sensor ===
-#define DHTPIN   4
-#define DHTTYPE  DHT22    
-
-DHT dht(DHTPIN, DHTTYPE);  // objeto global do sensor
-
-// Envia arquivo do SPIFFS
-static void enviarArquivo(const char* nome_arquivo, const char* tipo_de_arquivo) {
-  File f = SPIFFS.open(nome_arquivo, "r");
-  if (!f) {
-    server.send(404, "text/plain", "Arquivo nao encontrado");
-    return;
-  }
-  server.streamFile(f, tipo_de_arquivo);
-  f.close();
-}
-
-void enviarPaginaPrincipal() {
-  enviarArquivo("/index.html", "text/html");
-}
-
-void enviarEstilo() {
-  enviarArquivo("/style.css", "text/css");
-}
-
-void enviarLeituras() {
-  float temperatura = dht.readTemperature();  // °C
-  float umidade     = dht.readHumidity();     // %
-
+static void enviarLeituras() {
+  float temperatura = dht.readTemperature(); // °C
+  float umidade     = dht.readHumidity();    // %
   if (isnan(temperatura) || isnan(umidade)) {
-    // pode remover o sendHeader se quiser simplificar
-    Serial.println("[DHT] leitura invalida (NaN)");
     server.sendHeader("Cache-Control", "no-store");
     server.send(500, "application/json", "{\"error\":\"sensor\"}");
     return;
   }
+  char buf[96];
+  snprintf(buf, sizeof(buf),
+           "{\"temperatura\":%.1f,\"umidade\":%.1f}",
+           temperatura, umidade);
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json", buf);
+}
+
+**`API` (/api/leitura)(JSON):**
+<script>
+async function leituraAtual() {
+  try {
+    const r = await fetch('/api/leitura', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const { temperatura, umidade } = await r.json();
+    document.getElementById('temperatura').textContent =
+      (typeof temperatura === 'number') ? temperatura.toFixed(1) : '--';
+    document.getElementById('umidade').textContent =
+      (typeof umidade === 'number') ? umidade.toFixed(1) : '--';
+  } catch (e) { console.log(e); }
+}
+leituraAtual();
+setInterval(leituraAtual, 1000); // 1 s
+</script>
+
+
 
   
   Serial.printf("[DHT] T=%.1f °C  H=%.1f %%\n", temperatura, umidade);
@@ -205,40 +203,33 @@ void configurarRotas() {
 ```
 ---
 
-## 🖥️ Como Rodar
+## ▶️ Como rodar
+1. Conecte o ESP32 ao PC (drivers CP210x/CH340 se precisar).
 
-### 1) Clonar
+2. No VS Code (PlatformIO):
 
-    git clone https://github.com/<usuario>/<repo>.git](https://github.com/Erick-143/Projeto-Esp32-sensores-umidade-e-temperatura.git)
+° Upload (firmware)
 
-### 2) Abrir no VS Code (PlatformIO instalado)
+° Upload Filesystem Image (arquivos do data/).
 
-- Verifique drivers USB instalados (CP210x/CH340).  
-- Selecione a **porta** correta.
+3. Abra o Serial Monitor (115200) e veja:
 
-### 3) Compilar & Gravar o firmware
+° “Rede criada!”
 
-- **PlatformIO → Upload**  
-  ou
+° IP do AP (geralmente 192.168.4.1)
 
-        pio run -t upload
+No celular/notebook, conecte-se à rede AP do ESP32.
 
-### 4) Gravar os arquivos do site (SPIFFS)
+Acesse no navegador: http://192.168.4.1
+ ✅
+ 
+## 🔧 Configurações rápidas
+° Tipo de sensor: #define DHTTYPE DHT22 → troque para DHT11 se precisar.
 
-- **PlatformIO → Upload Filesystem Image**  
-  ou
+° Pino do DHT: #define DHTPIN 4 (ajuste conforme seu hardware).
 
-        pio run -t uploadfs
+° SSID/Senha do AP: em main.cpp (AP_SSID, AP_SENHA).
 
-> **Importante:** sempre que mudar algo em `data/`, rode `uploadfs` novamente.
+° Janela do gráfico: graf_MAX_PONTOS (ex.: 120 pontos ≈ 2 min a 1 s).
 
-
-## 🔧 Configurações Rápidas
-
-- **SSID/Senha do AP:** altere em `main.cpp`:
-
-        #define AP_SSID  "MeuESP32"
-        #define AP_SENHA "minhaSenha123"
-
-- **Pino do DHT:** altere `#define DHTPIN 4`  
-- **Tipo de sensor:** `#define DHTTYPE DHT22` (ou `DHT11`)
+° Cores: vermelho = Temperatura, azul = Umidade (mantidas no HTML e no JS).
