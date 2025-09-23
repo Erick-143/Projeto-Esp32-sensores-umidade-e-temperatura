@@ -5,13 +5,12 @@
 #include "routs.h"
 
 #define DHTPIN   4
-#define DHTTYPE  DHT22   // troque para DHT11 se for o seu caso
+#define DHTTYPE  DHT22   
 
 extern WebServer server;   // declarado em routs.h
 DHT dht(DHTPIN, DHTTYPE);  // objeto global do sensor
 
-// --------- Helper: registra rota estática (SPIFFS -> HTTP) ----------
-static void routeStatic(const char* url, const char* fsPath, const char* contentType) {
+static void enviarRota(const char* url, const char* fsPath, const char* contentType) {
   server.on(url, HTTP_GET, [fsPath, contentType]() {
     File f = SPIFFS.open(fsPath, "r");
     if (!f) {
@@ -23,8 +22,7 @@ static void routeStatic(const char* url, const char* fsPath, const char* content
   });
 }
 
-// ------------------------- API /api/leitura --------------------------
-static void enviarLeituras() {
+void enviarLeituras() {
   float temperatura = dht.readTemperature();  // °C
   float umidade     = dht.readHumidity();     // %
 
@@ -47,28 +45,25 @@ static void enviarLeituras() {
   server.send(200, "application/json", buf);
 }
 
-// ------------------------ 404 padrão -------------------------------
+
 static void rotaNaoEncontrada() {
   server.send(404, "text/plain", "Not found");
 }
 
-// ----------------------- Registrar rotas ---------------------------
+
 void configurarRotas() {
   dht.begin();
   delay(1500); // pequena pausa para o sensor iniciar
 
-  // ===== Estáticos (1 linha por arquivo) =====
-  routeStatic("/",                   "/index.html",          "text/html");
-  routeStatic("/style.css",          "/style.css",           "text/css");
-  routeStatic("/assets/LogoUema.png","/LogoUema.png", "image/png");
-  // Adicione aqui outros arquivos quando precisar:
-  // routeStatic("/script.js",        "/script.js",           "application/javascript");
-  // routeStatic("/assets/icone.svg", "/assets/icone.svg",    "image/svg+xml");
-
-  // ===== API =====
+  
+  enviarRota("/",                   "/index.html",          "text/html");
+  enviarRota("/style.css",          "/style.css",           "text/css");
+  enviarRota("/assets/LogoUema.png","/LogoUema.png", "image/png");
+  
+ 
   server.on("/api/leitura", HTTP_GET, enviarLeituras);
 
-  // ===== 404 =====
+  
   server.onNotFound(rotaNaoEncontrada);
 
   server.begin();

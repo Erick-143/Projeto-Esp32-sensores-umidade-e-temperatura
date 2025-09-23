@@ -8,7 +8,7 @@
 #define AP_SENHA "12345678"
 
 WebServer server(80);  
-// cria um abjeto que representa o servidor
+
 
 void setup() {
   Serial.begin(115200);  
