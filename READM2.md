@@ -14,13 +14,13 @@ Projeto que lê **temperatura** e **umidade** com um sensor DHT no **ESP32**, cr
 - **Servidor HTTP:** `WebServer` 
 - **Front-end:** HTML + CSS + JavaScript 
 - **Formato de dados:** JSON
-- **Drivers USB:** CP210x - Baseada na placa usada
+- **Drivers USB:** CP210x 
 
 ---
 
 ## 🔌 Hardware
 
-- ***ESP32 ***
+- **ESP32**
 - **DHT22** (ou **DHT11**)
 - **Resistor** de **10 kΩ** (pull-up no pino DATA)
 - **Jumpers** e **protoboard**
@@ -45,20 +45,15 @@ Projeto que lê **temperatura** e **umidade** com um sensor DHT no **ESP32**, cr
 
 ---
 ## 🌐 Como funciona (visão rápida)
-## 1.
-O ESP32 sobe uma rede AP (ex.: ESP32_REDE) e inicia um web server.
+1. O ESP32 sobe uma rede AP (ex.: ESP32_GRUPO2) e inicia um web server.
 
-## 2.
-A página index.html + style.css vêm do SPIFFS.
+2. A página index.html + style.css vêm do SPIFFS.
 
-## 3.
-O front-end chama GET /api/leitura a cada 1 s.
+3. O front-end chama GET /api/leitura a cada 1 s.
 
-## 4.
-O back-end lê o DHT e responde { "temperatura": x, "umidade": y }.
+4. O back-end lê o DHT e responde { "temperatura": x, "umidade": y }.
 
-## 5.
-A página atualiza os <span> e plota um gráfico 0..100 (escala comum a T e U):
+5. A página atualiza os <span> e plota um gráfico 0..100 (escala comum a T e U):
 
 ° Vermelho = Temperatura
 
@@ -90,10 +85,14 @@ lib_deps =
 
 **`routs.cpp` (resumo):**
 ```
-static void routeStatic(const char* url, const char* fsPath, const char* contentType) {
+
+void enviarRota(const char* url, const char* fsPath, const char* contentType) {
   server.on(url, HTTP_GET, [fsPath, contentType]() {
     File f = SPIFFS.open(fsPath, "r");
-    if (!f) { server.send(404, "text/plain", "Not found"); return; }
+    if (!f) {
+      server.send(404, "text/plain", "Not found");
+      return;
+    }
     server.streamFile(f, contentType);
     f.close();
   });
@@ -102,60 +101,34 @@ static void routeStatic(const char* url, const char* fsPath, const char* content
 ```
 Uso típico:
 ```
-routeStatic("/",                   "/index.html",   "text/html");
-routeStatic("/style.css",          "/style.css",    "text/css");
-routeStatic("/assets/LogoUema.png","/LogoUema.png", "image/png"); // arquivo físico é /LogoUema.png
-server.on("/api/leitura", HTTP_GET, enviarLeituras);
+  enviarRota("/",                   "/index.html",          "text/html");
+  enviarRota("/style.css",          "/style.css",           "text/css");
+  enviarRota("/asset/LogoUema.png","/LogoUema.png", "image/png");
+
+  server.on("/api/leitura", HTTP_GET, enviarLeituras);
 ```
 
 **`API` (/api/leitura)(JSON):**
 ```
-static void enviarLeituras() {
-  float temperatura = dht.readTemperature(); // °C
-  float umidade     = dht.readHumidity();    // %
+void enviarLeituras() {
+  float temperatura = dht.readTemperature();  // °C
+  float umidade     = dht.readHumidity();     // %
+
   if (isnan(temperatura) || isnan(umidade)) {
+    Serial.println("[DHT] leitura invalida (NaN)");
     server.sendHeader("Cache-Control", "no-store");
     server.send(500, "application/json", "{\"error\":\"sensor\"}");
     return;
   }
+
+
   char buf[96];
   snprintf(buf, sizeof(buf),
            "{\"temperatura\":%.1f,\"umidade\":%.1f}",
            temperatura, umidade);
+  Serial.printf("JSON -> %s\n", buf);
+
   server.sendHeader("Cache-Control", "no-store");
-  server.send(200, "application/json", buf);
-}
-
-**`API` (/api/leitura)(JSON):**
-<script>
-async function leituraAtual() {
-  try {
-    const r = await fetch('/api/leitura', { cache: 'no-store' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const { temperatura, umidade } = await r.json();
-    document.getElementById('temperatura').textContent =
-      (typeof temperatura === 'number') ? temperatura.toFixed(1) : '--';
-    document.getElementById('umidade').textContent =
-      (typeof umidade === 'number') ? umidade.toFixed(1) : '--';
-  } catch (e) { console.log(e); }
-}
-leituraAtual();
-setInterval(leituraAtual, 1000); // 1 s
-</script>
-
-
-
-  
-  Serial.printf("[DHT] T=%.1f °C  H=%.1f %%\n", temperatura, umidade);
-
-  char buf[96]; // buffer temporário p/ montar o JSON
-  snprintf(buf, sizeof(buf),
-           "{\"temperatura\":%.1f,\"umidade\":%.1f}",
-           temperatura, umidade);
-
-             Serial.printf("JSON -> %s\n", buf);
-
-  server.sendHeader("Cache-Control", "no-store"); // evita cache
   server.send(200, "application/json", buf);
 }
 
