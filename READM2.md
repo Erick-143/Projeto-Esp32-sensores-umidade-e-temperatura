@@ -136,20 +136,23 @@ void rotaNaoEncontrada() {
   server.send(404, "text/plain", "Rota nao encontrada");
 }
 
+
 void configurarRotas() {
-  // Inicia o DHT aqui
   dht.begin();
   delay(1500); // pequena pausa para o sensor iniciar
 
-  server.on("/",           HTTP_GET, enviarPaginaPrincipal);
-  server.on("/style.css",  HTTP_GET, enviarEstilo);
-  server.on("/api/leitura", HTTP_GET, enviarLeituras); 
+  
+  enviarRota("/",                   "/index.html",          "text/html");
+  enviarRota("/style.css",          "/style.css",           "text/css");
+  enviarRota("/LogoUema.png","/LogoUema.png", "image/png");
+
+  server.on("/api/leitura", HTTP_GET, enviarLeituras);
+  
   server.onNotFound(rotaNaoEncontrada);
 
   server.begin();
   Serial.println("Servidor web iniciado!");
   Serial.print("DHT: ");
-  Serial.println(DHTTYPE == DHT22 ? "DHT22" : "DHT11");
 }
 ```
 
