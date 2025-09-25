@@ -10,7 +10,7 @@
 extern WebServer server;   // declarado em routs.h
 DHT dht(DHTPIN, DHTTYPE);  // objeto global do sensor
 
-static void enviarRota(const char* url, const char* fsPath, const char* contentType) {
+void enviarRota(const char* url, const char* fsPath, const char* contentType) {
   server.on(url, HTTP_GET, [fsPath, contentType]() {
     File f = SPIFFS.open(fsPath, "r");
     if (!f) {
@@ -33,7 +33,6 @@ void enviarLeituras() {
     return;
   }
 
-  Serial.printf("[DHT] T=%.1f °C  H=%.1f %%\n", temperatura, umidade);
 
   char buf[96];
   snprintf(buf, sizeof(buf),
@@ -46,7 +45,7 @@ void enviarLeituras() {
 }
 
 
-static void rotaNaoEncontrada() {
+void rotaNaoEncontrada() {
   server.send(404, "text/plain", "Not found");
 }
 
@@ -58,7 +57,7 @@ void configurarRotas() {
   
   enviarRota("/",                   "/index.html",          "text/html");
   enviarRota("/style.css",          "/style.css",           "text/css");
-  enviarRota("/assets/LogoUema.png","/LogoUema.png", "image/png");
+  enviarRota("/LogoUema.png","/LogoUema.png", "image/png");
   
  
   server.on("/api/leitura", HTTP_GET, enviarLeituras);
@@ -69,5 +68,4 @@ void configurarRotas() {
   server.begin();
   Serial.println("Servidor web iniciado!");
   Serial.print("DHT: ");
-  Serial.println(DHTTYPE == DHT22 ? "DHT22" : "DHT11");
 }

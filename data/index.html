@@ -29,7 +29,7 @@
   </main>
 
   <footer>
-    <img src="assets/LogoUema.png" alt="LOGO_UEMA" class="imagem">
+    <img src="/LogoUema.png" alt="LOGO_UEMA" class="imagem">
     <p class = "rodape">
       Universidade Estadual do Maranhão<br>
       Curso de Engenharia de Computação
@@ -56,9 +56,9 @@
   </script>
 
 <script>
-  // ===== Gráfico comparativo 0..100 (min/max COMUNS) =====
+  // Gráfico
   // Configurações
-  const graf_MAX_PONTOS = 120;                         // ~2 min se ler a cada 1 s
+  const graf_PONTOS = 120;                         // ~2 min se ler a cada 1 s
   const graf_MARGENS    = { esquerda:45, direita:15, topo:15, base:25 };
 
   // Histórico
@@ -66,78 +66,74 @@
   const graf_umidades     = [];
 
   // Canvas
-  const graf_canvas = document.getElementById('grafico-tempo-real');
-  const graf_ctx    = graf_canvas.getContext('2d');
+  const canvas = document.getElementById('grafico-tempo-real');
+  const tipo2D    = canvas.getContext('2d');
 
   // índice → X
   function graf_indiceParaX(indice, total, largura) {
-    if (total <= 1) return graf_MARGENS.esquerda;
+    if (total <= 1) return graf_MARGENS.esquerda;//tirar divisão por zero
     const areaLargura = largura - graf_MARGENS.esquerda - graf_MARGENS.direita;
+    //calcula a largura util e distribui os pontos uniformemente
     return graf_MARGENS.esquerda + areaLargura * (indice / (total - 1));
   }
 
   // Desenho (escala comum 0..100)
   function graf_desenhar() {
-    const W = graf_canvas.width, H = graf_canvas.height;
-    graf_ctx.clearRect(0, 0, W, H);
+    const W = canvas.width, H = canvas.height;
+    tipo2D.clearRect(0, 0, W, H);//limpa tudo a cada desenho
 
-    const n = Math.max(graf_temperaturas.length, graf_umidades.length);
+  const n = Math.max(graf_temperaturas.length, graf_umidades.length);
     if (n === 0) return;
 
-    // Min e max COMUNS às duas séries (janela atual)
-    const todos = graf_temperaturas.concat(graf_umidades).filter(Number.isFinite);
-    let vmin = Math.min(...todos);
-    let vmax = Math.max(...todos);
-    if (vmax === vmin) vmax = vmin + 1; // evita divisão por zero
-
-    // Área útil e mapeamento fração [0..1] → Y
+   
+    // Área útil e mapeamento fração → Y
     const areaAltura = H - graf_MARGENS.topo - graf_MARGENS.base;
     const yFromFrac = (frac) => graf_MARGENS.topo + areaAltura * (1 - frac);
 
     // Eixos
-    graf_ctx.strokeStyle = '#cccccc';
-    graf_ctx.lineWidth   = 1;
-    graf_ctx.beginPath();
+    tipo2D.strokeStyle = '#cccccc';
+    tipo2D.lineWidth   = 1;
+    tipo2D.beginPath();
     // X
-    graf_ctx.moveTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);
-    graf_ctx.lineTo(W - graf_MARGENS.direita, H - graf_MARGENS.base);
+    tipo2D.moveTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);
+    tipo2D.lineTo(W - graf_MARGENS.direita, H - graf_MARGENS.base);
     // Y
-    graf_ctx.moveTo(graf_MARGENS.esquerda, graf_MARGENS.topo);
-    graf_ctx.lineTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);
-    graf_ctx.stroke();
+    tipo2D.moveTo(graf_MARGENS.esquerda, graf_MARGENS.topo);
+    tipo2D.lineTo(graf_MARGENS.esquerda, H - graf_MARGENS.base);
+    tipo2D.stroke();
 
     // Grade + rótulos 0..100 (sem “%”)
-    graf_ctx.font = '12px system-ui, Arial, sans-serif';
-    graf_ctx.fillStyle = '#666';
+    tipo2D.font = '12px system-ui, Arial, sans-serif';
+    tipo2D.fillStyle = '#666';
     for (let j = 0; j <= 5; j++) {
       const frac = j / 5;                 // 0, 0.2, 0.4, 0.6, 0.8, 1
       const y    = yFromFrac(frac);
-      graf_ctx.strokeStyle = '#efefef';
-      graf_ctx.beginPath();
-      graf_ctx.moveTo(graf_MARGENS.esquerda, y);
-      graf_ctx.lineTo(W - graf_MARGENS.direita, y);
-      graf_ctx.stroke();
-      graf_ctx.fillText(String((frac * 100).toFixed(0)), 4, y + 4); // sem símbolo
+      tipo2D.strokeStyle = '#efefef';
+      tipo2D.beginPath();
+      tipo2D.moveTo(graf_MARGENS.esquerda, y);
+      tipo2D.lineTo(W - graf_MARGENS.direita, y);
+      tipo2D.stroke();
+      tipo2D.fillText(String((frac * 100).toFixed(0)), 4, y + 4); // sem símbolo
     }
 
-    // Desenha série mapeando valor real → [0..1] com base no vmin/vmax COMUNS
+    // Desenha série
     function desenharSerieEscalaComum(arr, cor) {
       if (arr.length === 0) return;
 
-      graf_ctx.strokeStyle = cor;
-      graf_ctx.lineWidth   = 2;
-      graf_ctx.lineJoin    = 'round';
-      graf_ctx.lineCap     = 'round';
-      graf_ctx.beginPath();
+      tipo2D.strokeStyle = cor;
+      tipo2D.lineWidth   = 2;
+      tipo2D.lineJoin    = 'round';
+      tipo2D.lineCap     = 'round';
+      tipo2D.beginPath();
 
       arr.forEach((valor, i) => {
         const x = graf_indiceParaX(i, arr.length, W);
-        const frac = (valor - vmin) / (vmax - vmin);     // 0..1 na escala COMUM
+        const frac = valor / 100;     // 0..1 na escala COMUM
         const y = yFromFrac(frac);
-        if (i === 0) graf_ctx.moveTo(x, y); else graf_ctx.lineTo(x, y);
+        if (i === 0) tipo2D.moveTo(x, y); else tipo2D.lineTo(x, y);
       });
 
-      graf_ctx.stroke();
+      tipo2D.stroke();
     }
 
     // Ambas na mesma escala 0..100 (sem “%”)
@@ -157,8 +153,8 @@
 
     graf_temperaturas.push(T);
     graf_umidades.push(U);
-    if (graf_temperaturas.length > graf_MAX_PONTOS) graf_temperaturas.shift();
-    if (graf_umidades.length     > graf_MAX_PONTOS) graf_umidades.shift();
+    if (graf_temperaturas.length > graf_PONTOS) graf_temperaturas.shift();
+    if (graf_umidades.length     > graf_PONTOS) graf_umidades.shift();
 
     graf_desenhar();
   }
